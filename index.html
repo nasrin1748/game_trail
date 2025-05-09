@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe (Multi-Instance)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        #status {
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            min-height: 30px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border: 2px solid #333;
+            font-size: 36px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .cell:hover {
+            background-color: #e8e8e8;
+        }
+        .cell.x {
+            color: #2196F3;
+        }
+        .cell.o {
+            color: #F44336;
+        }
+        .cell.win {
+            background-color: #e8f5e9;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #game-id {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe</h1>
+    <div id="status">Player X's turn</div>
+    <div class="board" id="gameBoard"></div>
+    <button onclick="resetGame()">Reset Game</button>
+    <div id="game-id">Game ID: <span id="game-id-value"></span></div>
+
+    <script>
+        // Generate a unique game ID based on URL
+        const gameId = window.location.pathname + window.location.search;
+        document.getElementById('game-id-value').textContent = gameId;
+
+        let currentPlayer = 'X';
+        let gameBoard = Array(9).fill(null);
+        let gameOver = false;
+        let winningCells = [];
+
+        // Load game state from localStorage
+        function loadGameState() {
+            const savedGame = localStorage.getItem(`tic-tac-toe-${gameId}`);
+            if (savedGame) {
+                const gameState = JSON.parse(savedGame);
+                currentPlayer = gameState.currentPlayer;
+                gameBoard = gameState.gameBoard;
+                gameOver = gameState.gameOver;
+                winningCells = gameState.winningCells || [];
+            }
+        }
+
+        // Save game state to localStorage
+        function saveGameState() {
+            const gameState = {
+                currentPlayer,
+                gameBoard,
+                gameOver,
+                winningCells
+            };
+            localStorage.setItem(`tic-tac-toe-${gameId}`, JSON.stringify(gameState));
+        }
+
+        // Initialize the game board
+        function initializeBoard() {
+            loadGameState();
+            const boardElement = document.getElementById('gameBoard');
+            boardElement.innerHTML = '';
+
+            gameBoard.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.className = 'cell';
+                if (cell) {
+                    cellElement.textContent = cell;
+                    cellElement.classList.add(cell.toLowerCase());
+                }
+                if (winningCells.includes(index)) {
+                    cellElement.classList.add('win');
+                }
+                if (!gameOver && !cell) {
+                    cellElement.addEventListener('click', () => makeMove(index));
+                }
+                boardElement.appendChild(cellElement);
+            });
+
+            updateStatus();
+        }
+
+        // Handle player moves
+        function makeMove(index) {
+            if (gameOver || gameBoard[index]) return;
+
+            gameBoard[index] = currentPlayer;
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+            checkWinner();
+            saveGameState();
+            initializeBoard();
+        }
+
+        // Update game status text
+        function updateStatus() {
+            const statusElement = document.getElementById('status');
+            if (gameOver) {
+                if (winningCells.length > 0) {
+                    statusElement.textContent = `Player ${gameBoard[winningCells[0]]} wins!`;
+                } else {
+                    statusElement.textContent = "It's a draw!";
+                }
+            } else {
+                statusElement.textContent = `Player ${currentPlayer}'s turn`;
+            }
+        }
+
+        // Check for a winner
+        function checkWinner() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
+                    gameOver = true;
+                    winningCells = pattern;
+                    return;
+                }
+            }
+
+            // Check for draw
+            if (!gameBoard.includes(null)) {
+                gameOver = true;
+            }
+        }
+
+        // Reset the game
+        function resetGame() {
+            currentPlayer = 'X';
+            gameBoard = Array(9).fill(null);
+            gameOver = false;
+            winningCells = [];
+            saveGameState();
+            initializeBoard();
+        }
+
+        // Initialize the game when the page loads
+        window.onload = initializeBoard();
+    </script>
+</body>
+</html>
